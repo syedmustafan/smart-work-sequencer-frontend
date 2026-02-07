@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import api from '../lib/api';
 
 interface User {
   id: string;
@@ -11,59 +10,50 @@ interface User {
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: User;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, username: string, password: string) => Promise<void>;
-  logout: () => void;
-  refreshUser: () => Promise<void>;
+  githubConnected: boolean;
+  jiraConnected: boolean;
+  setGithubConnected: (connected: boolean) => void;
+  setJiraConnected: (connected: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Default user - no login required
+const defaultUser: User = {
+  id: 'local-user',
+  email: 'developer@local',
+  username: 'Developer',
+  github_connected: false,
+  jira_connected: false,
+  created_at: new Date().toISOString(),
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user] = useState<User>(defaultUser);
   const [isLoading, setIsLoading] = useState(true);
-
-  const refreshUser = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setUser(null);
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      const userData = await api.getMe();
-      setUser(userData);
-    } catch (error) {
-      localStorage.removeItem('token');
-      setUser(null);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const [githubConnected, setGithubConnected] = useState(false);
+  const [jiraConnected, setJiraConnected] = useState(false);
 
   useEffect(() => {
-    refreshUser();
+    // Check localStorage for connection status
+    const ghConnected = localStorage.getItem('github_connected') === 'true';
+    const jiraConn = localStorage.getItem('jira_connected') === 'true';
+    setGithubConnected(ghConnected);
+    setJiraConnected(jiraConn);
+    setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const { token, user: userData } = await api.login(email, password);
-    localStorage.setItem('token', token);
-    setUser(userData);
+  const handleSetGithubConnected = (connected: boolean) => {
+    setGithubConnected(connected);
+    localStorage.setItem('github_connected', String(connected));
   };
 
-  const register = async (email: string, username: string, password: string) => {
-    const { token, user: userData } = await api.register(email, username, password);
-    localStorage.setItem('token', token);
-    setUser(userData);
-  };
-
-  const logout = () => {
-    localStorage.removeItem('token');
-    setUser(null);
+  const handleSetJiraConnected = (connected: boolean) => {
+    setJiraConnected(connected);
+    localStorage.setItem('jira_connected', String(connected));
   };
 
   return (
@@ -71,11 +61,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         isLoading,
-        isAuthenticated: !!user,
-        login,
-        register,
-        logout,
-        refreshUser,
+        isAuthenticated: true, // Always authenticated
+        githubConnected,
+        jiraConnected,
+        setGithubConnected: handleSetGithubConnected,
+        setJiraConnected: handleSetJiraConnected,
       }}
     >
       {children}

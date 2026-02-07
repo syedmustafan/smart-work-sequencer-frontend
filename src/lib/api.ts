@@ -1,77 +1,39 @@
-import axios, { type AxiosError, type AxiosInstance } from 'axios';
+import axios, { type AxiosInstance } from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 class ApiService {
   private client: AxiosInstance;
 
   constructor() {
     this.client = axios.create({
-      baseURL: API_BASE_URL,
+      baseURL: `${API_BASE_URL}/api`,
       headers: {
         'Content-Type': 'application/json',
       },
     });
-
-    this.client.interceptors.request.use((config) => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      return config;
-    });
-
-    this.client.interceptors.response.use(
-      (response) => response,
-      (error: AxiosError) => {
-        if (error.response?.status === 401) {
-          localStorage.removeItem('token');
-          window.location.href = '/login';
-        }
-        return Promise.reject(error);
-      }
-    );
   }
 
-  // Auth
-  async register(email: string, username: string, password: string) {
-    const { data } = await this.client.post('/auth/register/', { email, username, password });
-    return data;
-  }
-
-  async login(email: string, password: string) {
-    const { data } = await this.client.post('/auth/login/', { email, password });
-    return data;
-  }
-
-  async getMe() {
-    const { data } = await this.client.get('/auth/me/');
-    return data;
-  }
-
-  async getConnectionStatus() {
-    const { data } = await this.client.get('/auth/connections/');
-    return data;
-  }
-
+  // OAuth - GitHub
   async getGitHubAuthUrl() {
     const { data } = await this.client.get('/auth/github/');
     return data.auth_url;
   }
 
   async disconnectGitHub() {
-    const { data } = await this.client.post('/auth/github/disconnect/');
-    return data;
+    localStorage.removeItem('github_connected');
+    return { success: true };
   }
 
+  // OAuth - Jira
   async getJiraAuthUrl() {
     const { data } = await this.client.get('/auth/jira/');
     return data.auth_url;
   }
 
   async disconnectJira() {
-    const { data } = await this.client.post('/auth/jira/disconnect/');
-    return data;
+    localStorage.removeItem('jira_connected');
+    return { success: true };
   }
 
   // GitHub Integration

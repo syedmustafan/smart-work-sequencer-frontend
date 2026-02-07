@@ -37,9 +37,8 @@ interface JiraProject {
 }
 
 export default function SettingsPage() {
-  const { user, refreshUser } = useAuth();
-  const [searchParams] = useSearchParams();
-  const [connectionStatus, setConnectionStatus] = useState<any>(null);
+  const { githubConnected, jiraConnected, setGithubConnected, setJiraConnected } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [jiraProjects, setJiraProjects] = useState<JiraProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,12 +49,10 @@ export default function SettingsPage() {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      const [status, repos, projects] = await Promise.all([
-        api.getConnectionStatus(),
-        user?.github_connected ? api.getRepositories().catch(() => ({ results: [] })) : { results: [] },
-        user?.jira_connected ? api.getJiraProjects().catch(() => ({ results: [] })) : { results: [] },
+      const [repos, projects] = await Promise.all([
+        githubConnected ? api.getRepositories().catch(() => ({ results: [] })) : { results: [] },
+        jiraConnected ? api.getJiraProjects().catch(() => ({ results: [] })) : { results: [] },
       ]);
-      setConnectionStatus(status);
       setRepositories(repos.results || repos || []);
       setJiraProjects(projects.results || projects || []);
     } catch (error) {
@@ -75,14 +72,19 @@ export default function SettingsPage() {
 
     if (githubStatus === 'connected') {
       setMessage({ type: 'success', text: 'GitHub connected successfully!' });
-      refreshUser();
+      setGithubConnected(true);
+      // Clear the URL params
+      setSearchParams({});
     } else if (jiraStatus === 'connected') {
       setMessage({ type: 'success', text: 'Jira connected successfully!' });
-      refreshUser();
+      setJiraConnected(true);
+      // Clear the URL params
+      setSearchParams({});
     } else if (error) {
       setMessage({ type: 'error', text: `Connection failed: ${error}` });
+      setSearchParams({});
     }
-  }, [searchParams]);
+  }, [searchParams, setSearchParams, setGithubConnected, setJiraConnected]);
 
   const handleConnectGitHub = async () => {
     try {
@@ -96,8 +98,7 @@ export default function SettingsPage() {
   const handleDisconnectGitHub = async () => {
     try {
       await api.disconnectGitHub();
-      await refreshUser();
-      setConnectionStatus((prev: any) => ({ ...prev, github: { connected: false } }));
+      setGithubConnected(false);
       setRepositories([]);
       setMessage({ type: 'success', text: 'GitHub disconnected' });
     } catch (error) {
@@ -117,8 +118,7 @@ export default function SettingsPage() {
   const handleDisconnectJira = async () => {
     try {
       await api.disconnectJira();
-      await refreshUser();
-      setConnectionStatus((prev: any) => ({ ...prev, jira: { connected: false } }));
+      setJiraConnected(false);
       setJiraProjects([]);
       setMessage({ type: 'success', text: 'Jira disconnected' });
     } catch (error) {
@@ -181,7 +181,7 @@ export default function SettingsPage() {
   return (
     <div className="p-8 max-w-4xl">
       <h1 className="text-3xl font-display font-bold text-white mb-2">Settings</h1>
-      <p className="text-dark-400 mb-8">Manage your integrations and preferences</p>
+      <p className="text-dark-400 mb-8">Connect your GitHub and Jira accounts to start tracking</p>
 
       {message && (
         <div
@@ -219,7 +219,7 @@ export default function SettingsPage() {
               <p className="text-sm text-dark-400">Connect to track commits and PRs</p>
             </div>
           </div>
-          {connectionStatus?.github?.connected ? (
+          {githubConnected ? (
             <div className="flex items-center gap-3">
               <span className="badge-success flex items-center gap-1">
                 <Check className="w-3 h-3" /> Connected
@@ -236,7 +236,7 @@ export default function SettingsPage() {
           )}
         </div>
 
-        {connectionStatus?.github?.connected && (
+        {githubConnected && (
           <div className="border-t border-dark-700/50 pt-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium text-dark-200">Repositories</h3>
@@ -303,7 +303,7 @@ export default function SettingsPage() {
               <p className="text-sm text-dark-400">Connect to track tickets and worklogs</p>
             </div>
           </div>
-          {connectionStatus?.jira?.connected ? (
+          {jiraConnected ? (
             <div className="flex items-center gap-3">
               <span className="badge-success flex items-center gap-1">
                 <Check className="w-3 h-3" /> Connected
@@ -320,7 +320,7 @@ export default function SettingsPage() {
           )}
         </div>
 
-        {connectionStatus?.jira?.connected && (
+        {jiraConnected && (
           <div className="border-t border-dark-700/50 pt-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium text-dark-200">Projects</h3>

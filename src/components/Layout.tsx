@@ -1,11 +1,10 @@
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   GitBranch, 
   FileText, 
   AlertTriangle, 
-  Settings, 
-  LogOut,
+  Settings,
   Zap
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -20,13 +19,7 @@ const navItems = [
 ];
 
 export default function Layout() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+  const { user, githubConnected, jiraConnected } = useAuth();
 
   return (
     <div className="min-h-screen flex">
@@ -66,24 +59,39 @@ export default function Layout() {
           ))}
         </nav>
 
-        {/* User section */}
+        {/* Connection Status */}
         <div className="p-4 border-t border-dark-700/50">
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-accent-400 flex items-center justify-center text-white font-bold">
-              {user?.username?.charAt(0).toUpperCase() || 'U'}
+              {user?.username?.charAt(0).toUpperCase() || 'D'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-dark-100 truncate">{user?.username}</p>
-              <p className="text-xs text-dark-400 truncate">{user?.email}</p>
+              <p className="text-sm font-medium text-dark-100 truncate">{user?.username || 'Developer'}</p>
+              <p className="text-xs text-dark-400">Local Mode</p>
             </div>
           </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 w-full px-4 py-2 text-dark-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
-          >
-            <LogOut className="w-4 h-4" />
-            <span className="text-sm">Log out</span>
-          </button>
+          
+          {/* Integration Status Indicators */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-xs">
+              <div className={cn(
+                "w-2 h-2 rounded-full",
+                githubConnected ? "bg-emerald-500" : "bg-dark-600"
+              )} />
+              <span className={githubConnected ? "text-dark-300" : "text-dark-500"}>
+                GitHub {githubConnected ? "Connected" : "Not connected"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <div className={cn(
+                "w-2 h-2 rounded-full",
+                jiraConnected ? "bg-emerald-500" : "bg-dark-600"
+              )} />
+              <span className={jiraConnected ? "text-dark-300" : "text-dark-500"}>
+                Jira {jiraConnected ? "Connected" : "Not connected"}
+              </span>
+            </div>
+          </div>
         </div>
       </aside>
 
