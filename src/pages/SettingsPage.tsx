@@ -63,17 +63,16 @@ export default function SettingsPage() {
   };
 
   useEffect(() => {
-    fetchData();
-
-    // Check for OAuth callbacks
+    // Check for OAuth callbacks FIRST before fetching data
     const githubStatus = searchParams.get('github');
     const jiraStatus = searchParams.get('jira');
     const userId = searchParams.get('user_id');
     const error = searchParams.get('error');
 
-    // Store user_id if provided in callback
+    // Store user_id if provided in callback - do this FIRST
     if (userId) {
       setUserId(userId);
+      console.log('Stored user_id from OAuth callback:', userId);
     }
 
     if (githubStatus === 'connected') {
@@ -81,19 +80,18 @@ export default function SettingsPage() {
       setGithubConnected(true);
       // Clear the URL params
       setSearchParams({});
-      // Refetch data now that we're connected
-      fetchData();
     } else if (jiraStatus === 'connected') {
       setMessage({ type: 'success', text: 'Jira connected successfully!' });
       setJiraConnected(true);
       // Clear the URL params
       setSearchParams({});
-      // Refetch data now that we're connected
-      fetchData();
     } else if (error) {
       setMessage({ type: 'error', text: `Connection failed: ${error}` });
       setSearchParams({});
     }
+
+    // Fetch data AFTER user_id is stored
+    fetchData();
   }, [searchParams, setSearchParams, setGithubConnected, setJiraConnected]);
 
   const handleConnectGitHub = async () => {
