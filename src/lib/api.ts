@@ -2,6 +2,10 @@ import axios, { type AxiosInstance } from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
+// Helper to get/set user ID
+export const getUserId = (): string | null => localStorage.getItem('user_id');
+export const setUserId = (id: string) => localStorage.setItem('user_id', id);
+
 class ApiService {
   private client: AxiosInstance;
 
@@ -12,28 +16,47 @@ class ApiService {
         'Content-Type': 'application/json',
       },
     });
+
+    // Add interceptor to include X-User-ID header
+    this.client.interceptors.request.use((config) => {
+      const userId = getUserId();
+      if (userId) {
+        config.headers['X-User-ID'] = userId;
+      }
+      return config;
+    });
   }
 
   // OAuth - GitHub
   async getGitHubAuthUrl() {
     const { data } = await this.client.get('/auth/github/');
+    // Store the user_id that was created for this session
+    if (data.user_id) {
+      setUserId(data.user_id);
+    }
     return data.auth_url;
   }
 
   async disconnectGitHub() {
+    const { data } = await this.client.post('/auth/github/disconnect/');
     localStorage.removeItem('github_connected');
-    return { success: true };
+    return data;
   }
 
   // OAuth - Jira
   async getJiraAuthUrl() {
     const { data } = await this.client.get('/auth/jira/');
+    // Store the user_id that was created for this session
+    if (data.user_id) {
+      setUserId(data.user_id);
+    }
     return data.auth_url;
   }
 
   async disconnectJira() {
+    const { data } = await this.client.post('/auth/jira/disconnect/');
     localStorage.removeItem('jira_connected');
-    return { success: true };
+    return data;
   }
 
   // GitHub Integration

@@ -9,7 +9,7 @@ import {
   FolderCheck
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
-import api from '../lib/api';
+import api, { setUserId } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { LoadingPage } from '../components/LoadingSpinner';
 import { cn } from '../lib/utils';
@@ -68,18 +68,28 @@ export default function SettingsPage() {
     // Check for OAuth callbacks
     const githubStatus = searchParams.get('github');
     const jiraStatus = searchParams.get('jira');
+    const userId = searchParams.get('user_id');
     const error = searchParams.get('error');
+
+    // Store user_id if provided in callback
+    if (userId) {
+      setUserId(userId);
+    }
 
     if (githubStatus === 'connected') {
       setMessage({ type: 'success', text: 'GitHub connected successfully!' });
       setGithubConnected(true);
       // Clear the URL params
       setSearchParams({});
+      // Refetch data now that we're connected
+      fetchData();
     } else if (jiraStatus === 'connected') {
       setMessage({ type: 'success', text: 'Jira connected successfully!' });
       setJiraConnected(true);
       // Clear the URL params
       setSearchParams({});
+      // Refetch data now that we're connected
+      fetchData();
     } else if (error) {
       setMessage({ type: 'error', text: `Connection failed: ${error}` });
       setSearchParams({});
